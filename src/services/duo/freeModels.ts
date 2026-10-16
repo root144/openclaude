@@ -1,14 +1,16 @@
 /**
- * duo — free model catalogue (OpenCode + Cline).
+ * duo — free model catalogue (OpenCode + Cline + bridge/FCC).
  *
  * Snapshot produced by the probe in the duo project (duo/probe_free.py, run
  * from the machine that hosts the fork), cost 0 verified: 2026-10-08 (first
  * run), 2026-10-10 (rate-limit outage), 2026-10-16 (three OpenCode ids went
  * no-route and two Cline ids failed, longcat recovered, cat-jam-free and
- * big-pickle verified and added). See RATE_LIMITED_MODELS and
- * KNOWN_BAD_MODELS for the caveats. Re-run the probe after PROBE_STALE_AFTER
- * (or `python3 probe_free.py <id…>` for a targeted re-check) and update this
- * file.
+ * big-pickle verified and added). 2026-10-16 (evening): the Google AI Studio
+ * key was wired into FCC — Gemini flash models verified through the bridge
+ * (see BRIDGE_FREE_MODELS; the pro/argon ids are paid-tier only on this key).
+ * See RATE_LIMITED_MODELS and KNOWN_BAD_MODELS for the caveats. Re-run the
+ * probe after PROBE_STALE_AFTER (or `python3 probe_free.py <id…>` for a
+ * targeted re-check) and update this file.
  */
 
 /** Verified-cost-zero OpenCode models (provider/model-id). */
@@ -31,6 +33,18 @@ export const OC_FREE_MODELS = [
 export const CLINE_FREE_MODELS = [
   'cline-free/muse-spark-1.3-contributor',
   'cline-free/mimo-v2.6-flash',
+] as const
+
+/**
+ * Bridge models verified at cost 0 via FCC (Google AI Studio free tier).
+ *
+ * Reachable on either side of a `builtin` debate (the default backend); the
+ * `cli` backend spawns the opencode/cline CLIs, which do not see the bridge.
+ * Verified live 2026-10-16: gemini-3.6-flash answers in seconds; 3.7/3.8 were
+ * overloaded that day, and the pro/argon ids answered 429 on this free key.
+ */
+export const BRIDGE_FREE_MODELS = [
+  'anthropic/gemini/models/gemini-3.6-flash',
 ] as const
 
 /** Probe date of the lists above. */

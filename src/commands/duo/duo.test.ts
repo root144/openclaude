@@ -9,6 +9,7 @@ import {
   type DuoInput,
 } from './duo.js'
 import {
+  BRIDGE_FREE_MODELS,
   KNOWN_BAD_MODELS,
   RATE_LIMITED_MODELS,
 } from '../../services/duo/freeModels.js'
@@ -48,6 +49,7 @@ describe('parseDuoInput', () => {
   test('model id validation rejects flag-shaped input', () => {
     expect(isValidModelId('opencode/space-bunny-free')).toBe(true)
     expect(isValidModelId('cline-free/muse-spark-1.3-contributor')).toBe(true)
+    expect(isValidModelId('anthropic/gemini/models/gemini-3.6-flash')).toBe(true)
     expect(isValidModelId('-rf')).toBe(false)
     expect(isValidModelId('--auto')).toBe(false)
     expect(isValidModelId('has space')).toBe(false)
@@ -158,6 +160,14 @@ describe('parseDuoInput', () => {
     for (const [model] of KNOWN_BAD_MODELS) {
       expect(out.slice(out.indexOf('known-bad (probe failures)'))).toContain(model)
     }
+  })
+
+  test('the models listing includes bridge models (FCC, builtin backend)', () => {
+    const out = formatFreeModels()
+    for (const model of BRIDGE_FREE_MODELS) {
+      expect(out).toContain(model)
+    }
+    expect(out).toContain('bridge — FCC')
   })
 
   test('skills lists installed skills', () => {

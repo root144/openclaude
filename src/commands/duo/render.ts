@@ -4,6 +4,7 @@
 
 import { parseVerdict, READ_ONLY_TOOLS } from '../../services/duo/debate.js'
 import {
+  BRIDGE_FREE_MODELS,
   CLINE_FREE_MODELS,
   CLINE_RETIREMENT_WARNING,
   KNOWN_BAD_MODELS,
@@ -75,6 +76,9 @@ export function formatFreeModels(): string {
     ``,
     `side B — cline (${CLINE_FREE_MODELS.length} verified, cost 0):`,
     ...CLINE_FREE_MODELS.map(model => `  ${model}`),
+    ``,
+    `bridge — FCC (${BRIDGE_FREE_MODELS.length} verified, cost 0, backend builtin):`,
+    ...BRIDGE_FREE_MODELS.map(model => `  ${model}`),
     ``,
     `use: /duo backend cli · /duo model a <id> · /duo model b <id>`,
     `warning: ${CLINE_RETIREMENT_WARNING}`,
