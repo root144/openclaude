@@ -488,7 +488,7 @@ silently:
 
 ```
 DUO_MODEL_A=opencode/space-bunny-free \
-DUO_MODEL_A_FALLBACKS=opencode/nemotron-3-ultra-free,opencode/mimo-v2.6-flash-free \
+DUO_MODEL_A_FALLBACKS=opencode/big-pickle,opencode/mimo-v2.6-flash-free \
 openclaude -p "/duo why does this query skip the index?"
 ```
 
