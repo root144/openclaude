@@ -5,7 +5,9 @@
  * from the machine that hosts the fork), cost 0 verified: 2026-10-08 (first
  * run), 2026-10-10 (rate-limit outage), 2026-10-16 (three OpenCode ids went
  * no-route and two Cline ids failed, longcat recovered, cat-jam-free and
- * big-pickle verified and added). 2026-10-16 (evening): the Google AI Studio
+ * big-pickle verified and added). 2026-10-18 (full re-probe): cat-jam-free and
+ * muse-spark-1.3-contributor-free followed step-5 no-route — 12 ids OK.
+ * 2026-10-16 (evening): the Google AI Studio
  * key was wired into FCC — Gemini flash models verified through the bridge
  * (see BRIDGE_FREE_MODELS; the pro/argon ids are paid-tier only on this key).
  * See RATE_LIMITED_MODELS and KNOWN_BAD_MODELS for the caveats. Re-run the
@@ -20,8 +22,6 @@ export const OC_FREE_MODELS = [
   'opencode/nemotron-3.5-lightning-free',
   'opencode/nemotron-3-ultra-free',
   'opencode/longcat-2.5-preview-free',
-  'opencode/muse-spark-1.3-contributor-free',
-  'opencode/cat-jam-free',
   'opencode/big-pickle',
   'orcarouter/z-ai/glm-5.3-flash-free',
   'orcarouter/deepseek/deepseek-v4-flash-free',
@@ -48,10 +48,10 @@ export const BRIDGE_FREE_MODELS = [
 ] as const
 
 /** Probe date of the lists above. */
-export const PROBE_DATE = '2026-10-16'
+export const PROBE_DATE = '2026-10-18'
 
 /** Re-probe after this date: free tiers churn. */
-export const PROBE_STALE_AFTER = '2026-11-15'
+export const PROBE_STALE_AFTER = '2026-11-17'
 
 /**
  * Free models that were serving earlier and misbehaved at the last probe —
@@ -82,6 +82,8 @@ export const KNOWN_BAD_MODELS: ReadonlyArray<readonly [string, string]> = [
   ['opencode/ling-3.1-flash-free', 'no-route — "Model unavailable", 2026-10-16'],
   ['opencode/fledge-alpha-free', 'no-route — "Model unavailable", 2026-10-16'],
   ['opencode/step-5-preview-free', 'no-route — "Model unavailable", 2026-10-16'],
+  ['opencode/cat-jam-free', 'no-route — "Model unavailable", 2026-10-18'],
+  ['opencode/muse-spark-1.3-contributor-free', 'no-route — "Model unavailable", 2026-10-18'],
   // Announced for retirement 2026-10-05, still served on 2026-10-08, failed
   // the 2026-10-16 probe — volatile rather than gone.
   ['stealth/space-bunny-alpha', 'finish=error at the 2026-10-16 probe (retirement announced)'],
