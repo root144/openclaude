@@ -330,7 +330,7 @@ async function runTurn(model, prompt, maxTokens, directive, convo = null) {
 // Ordered fallback chain (opencode free tier first — fastest — then the
 // others). Override with OC_BRIDGE_FALLBACKS="modelA,modelB".
 const FALLBACKS = (process.env.OC_BRIDGE_FALLBACKS ??
-  "opencode/cat-jam-free,opencode/muse-spark-1.3-contributor-free,opencode/step-5-preview-free,opencode/big-pickle,opencode/space-bunny-free")
+  "opencode/space-bunny-free,opencode/nemotron-3-ultra-free,opencode/big-pickle,opencode/mimo-v2.6-flash-free,opencode/longcat-2.5-preview-free")
   .split(",").map(s => s.trim()).filter(Boolean)
 
 async function runTurnWithFallback(model, prompt, maxTokens, directive, convo = null, fullPrompt = null) {
