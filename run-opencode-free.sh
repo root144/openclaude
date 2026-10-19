@@ -1,4 +1,5 @@
 #!/bin/bash
+export PATH="$HOME/.npm-global/bin:$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin${PATH:+:$PATH}"
 # ============================================================================
 # OpenClaude fork — launcher on FREE models (no Anthropic login)
 # ============================================================================

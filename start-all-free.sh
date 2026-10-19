@@ -1,4 +1,5 @@
 #!/bin/bash
+export PATH="$HOME/.npm-global/bin:$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin${PATH:+:$PATH}"
 # ============================================================================
 # Start the opencode free-model stack for the OpenClaude fork.
 #   1. `opencode serve`   on 127.0.0.1:18085
