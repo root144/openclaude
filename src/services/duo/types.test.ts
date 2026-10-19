@@ -1,9 +1,12 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import {
+  addUsageToBudget,
   capHistory,
   createDuoState,
+  createDuoStats,
   DUO_MAX_ROUNDS,
   MAX_HISTORY_MESSAGES,
+  remainingBudget,
 } from './types.js'
 
 const ENV_KEYS = ['DUO_BACKEND', 'DUO_ROUNDS', 'DUO_PROTOCOL', 'DUO_APPROVE', 'DUO_AUTO_SKILL', 'DUO_MODEL_A', 'DUO_MODEL_B'] as const
@@ -77,5 +80,28 @@ describe('createDuoState', () => {
   test('invalid backend falls back to builtin', () => {
     process.env.DUO_BACKEND = 'nonsense'
     expect(createDuoState().backend).toBe('builtin')
+  })
+})
+describe('budget accounting', () => {
+  test('consumes usage cumulatively and reports remaining ceilings', () => {
+    const st = createDuoState()
+    st.budgetTokens = 100
+    st.budgetUsd = 1
+    const stats = createDuoStats()
+    stats.usage.A = { input: 30, output: 20, cost: 0.25 }
+    stats.usage.B = { input: 10, output: 10, cost: 0.25 }
+    addUsageToBudget(st, stats)
+    expect(st.budgetUsed).toEqual({ tokens: 70, usd: 0.5 })
+    expect(remainingBudget(st)).toEqual({ tokens: 30, usd: 0.5 })
+    addUsageToBudget(st, createDuoStats())
+    expect(st.budgetUsed).toEqual({ tokens: 70, usd: 0.5 })
+  })
+
+  test('disabled budgets stay null and never go negative', () => {
+    const st = createDuoState()
+    expect(remainingBudget(st)).toEqual({ tokens: null, usd: null })
+    st.budgetTokens = 10
+    st.budgetUsed.tokens = 25
+    expect(remainingBudget(st).tokens).toBe(0)
   })
 })

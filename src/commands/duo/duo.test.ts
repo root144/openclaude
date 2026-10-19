@@ -4,6 +4,7 @@ import {
   formatFreeModels,
   isValidModelId,
   parseDuoInput,
+  resolveDebaterModel,
   resolveDuoModel,
   summarizeVerdicts,
   type DuoInput,
@@ -229,6 +230,22 @@ describe('resolveDuoModel', () => {
   })
 })
 
+describe('resolveDebaterModel', () => {
+  test('builtin defaults to the session model and B follows A', () => {
+    const st = createDuoState()
+    expect(resolveDebaterModel('A', st, 'session-model', 'builtin')).toBe('session-model')
+    expect(resolveDebaterModel('B', st, 'session-model', 'builtin')).toBe('session-model')
+    const withA = { ...st, modelA: 'model-x' }
+    expect(resolveDebaterModel('B', withA, 'session-model', 'builtin')).toBe('model-x')
+  })
+
+  test('cli keeps null so the CLI default applies', () => {
+    const st = createDuoState()
+    expect(resolveDebaterModel('A', st, 'session-model', 'cli')).toBeNull()
+    expect(resolveDebaterModel('B', st, 'session-model', 'cli')).toBeNull()
+  })
+})
+
 describe('summarizeVerdicts', () => {
   /** Build a realistic alternating transcript: question, then A/B, A/B, … */
   const verdicts = (texts: string[]) => {
@@ -267,6 +284,21 @@ describe('summarizeVerdicts', () => {
 
   test('no verdict at all → empty', () => {
     expect(summarizeVerdicts(verdicts(['question', 'plain answer']))).toBe('')
+  })
+
+  test('a side that never emitted a verdict is not credited with one', () => {
+    const result = verdicts([
+      'question',
+      'ok\nVERDICT: SUITE', // A
+      'plain B answer', // B, no verdict
+      'ok\nVERDICT: CONSENSUS', // A
+      'plain B again', // B, no verdict
+    ])
+    const summary = summarizeVerdicts(result)
+    expect(summary).toContain('A 1/2 CI')
+    expect(summary).toContain('B —')
+    expect(summary).not.toContain('B 1/1 CI')
+    expect(summary).toContain('CO CI')
   })
 
   test('a refusal in round 1 stays visible as CO', () => {

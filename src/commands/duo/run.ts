@@ -4,7 +4,6 @@
 
 import type { LocalJSXCommandContext, LocalCommandCall, LocalCommandResult } from '../../types/command.js'
 import type { Message, SystemAPIErrorMessage } from '../../types/message.js'
-import type { Tool } from '../../Tool.js'
 import { formatAPIError } from '../../services/api/errorUtils.js'
 import { runClineDebater, runOpenCodeDebater } from '../../services/duo/cliAgent.js'
 import {
@@ -19,6 +18,7 @@ import {
   selectSkills,
   SKILL_ROUTER_SYSTEM,
 } from '../../services/duo/skillSelect.js'
+import { isGroundedReadAllowed } from '../../services/duo/readScope.js'
 import {
   composeSkillQuestion,
   listDuoSkills,
@@ -26,12 +26,14 @@ import {
   type DuoSkillInfo,
 } from '../../services/duo/skills.js'
 import {
+  addUsageToBudget,
   capHistory,
   createDuoState,
   createDuoStats,
   effectiveModel,
   MAX_TRANSCRIPT_TURNS,
   recordTurn,
+  remainingBudget,
   type DuoState,
   type DuoStats,
   type DuoSide,
@@ -40,7 +42,7 @@ import { deleteSession, listSessions, loadSession, saveSession } from '../../ser
 import { runForkedAgent, type SubagentContextOverrides } from '../../utils/forkedAgent.js'
 import { createAssistantMessage, createUserMessage, extractTextContent } from '../../utils/messages.js'
 import { asSystemPrompt } from '../../utils/systemPromptType.js'
-import { parseDuoInput, resolveDuoModel } from './parse.js'
+import { parseDuoInput, resolveDebaterModel, resolveDuoModel } from './parse.js'
 import {
   formatDuoResult,
   formatDuoStatus,
@@ -128,10 +130,11 @@ function makeAsk(
     incoming: string,
     phase: 'opening' | 'debate',
   ): Promise<string> => {
-    const sessionModel = context.options.mainLoopModel
-    const models = side === 'A'
-      ? [st.modelA, ...st.modelAFallbacks].filter(Boolean) as string[]
-      : [st.modelB, ...st.modelBFallbacks].filter(Boolean) as string[]
+    // Builtin model defaulting is NOT the CLI path's: with no pin, the side
+    // must use the live session model, and B must follow A when only A is set
+    // (see resolveDuoModel). Passing undefined here used to fall through to the
+    // global default model while the header still claimed the session model.
+    const model = resolveDebaterModel(side, st, context.options.mainLoopModel, 'builtin')!
     const history = st.history[side]
     const content =
       phase === 'opening'
@@ -158,34 +161,55 @@ function makeAsk(
         toolUseContext: context,
         forkContextMessages: history,
       },
-      canUseTool: async (tool: Tool) => {
-        // Grounded debate: read-only inspection is allowed, everything else is
-        // denied. `requireCanUseTool` (below) means an allow-style hook cannot
-        // bypass this closure. Whitelisted by name rather than tool.isReadOnly()
-        // so an MCP or plugin tool cannot self-declare as read-only to slip in.
-        if (st.grounded && (READ_ONLY_TOOLS as readonly string[]).includes(tool.name)) {
+      canUseTool: async (tool, input) => {
+        // Grounded debate: Read/Glob/Grep inside the project only. The name
+        // whitelist is not enough — the input carries an arbitrary path, so
+        // paths are resolved (symlinks included) and confined to cwd. Secret
+        // files and VCS internals are refused even inside the project.
+        // `requireCanUseTool` (below) means an allow-style hook cannot bypass
+        // this closure.
+        if (st.grounded) {
+          const decision = await isGroundedReadAllowed(
+            tool.name,
+            input as Record<string, unknown>,
+            process.cwd(),
+          )
+          if (decision.allowed) {
+            return {
+              behavior: 'allow' as const,
+              decisionReason: {
+                type: 'other' as const,
+                reason: 'duo_grounded_read',
+              },
+            }
+          }
+          const detail =
+            decision.reason === 'outside-project'
+              ? 'path is outside the project'
+              : decision.reason === 'sensitive-path'
+                ? 'path looks like a secret or VCS internals'
+                : `tool "${tool.name}" is not a read-only inspection tool`
           return {
-            behavior: 'allow' as const,
+            behavior: 'deny' as const,
+            message: `duo grounded debates may only read inside the project (${READ_ONLY_TOOLS.join(', ')}): ${detail}.`,
             decisionReason: {
               type: 'other' as const,
-              reason: 'duo_grounded_read',
+              reason: 'duo_grounded_readonly',
             },
           }
         }
         return {
           behavior: 'deny' as const,
-          message: st.grounded
-            ? `duo debaters may only read (${READ_ONLY_TOOLS.join(', ')}). This turn cannot use "${tool}".`
-            : 'duo debate turns cannot use tools',
+          message: 'duo debate turns cannot use tools',
           decisionReason: {
             type: 'other' as const,
-            reason: st.grounded ? 'duo_grounded_readonly' : 'duo',
+            reason: 'duo',
           },
         }
       },
       querySource: 'duo',
       forkLabel: `duo_${side}`,
-      overrides: buildDuoOverrides(context, models[0]),
+      overrides: buildDuoOverrides(context, model),
       maxTurns: st.grounded ? READ_TOOLS_MAX_TURNS : 1,
       skipCacheWrite: true,
       skipTranscript: true,
@@ -195,7 +219,7 @@ function makeAsk(
 
     const reply = extractReply(result.messages)
     st.history[side] = capHistory(history, [userMsg, createAssistantMessage({ content: reply })])
-    recordTurn(stats, side, phase, usageFromFork(result.totalUsage), Date.now() - startedAt, models[0] ?? null)
+    recordTurn(stats, side, phase, usageFromFork(result.totalUsage), Date.now() - startedAt, model)
     return reply
   }
 }
@@ -260,7 +284,9 @@ function makeCliAsk(
         ? `(CLI error: ${result.error})`
         : '(no reply received)'
 
-    if (side === 'B') {
+    if (side === 'B' && !result.error && result.text) {
+      // A failed turn is not assistant prose. Storing "(CLI error: …)" as the
+      // peer's reply poisons every later Cline turn that replays the transcript.
       st.clTranscript.push({ message: content, reply })
       while (st.clTranscript.length > MAX_TRANSCRIPT_TURNS) st.clTranscript.shift()
     }
@@ -390,6 +416,10 @@ async function executeDebate(
   }
   const isCli = st.backend === 'cli'
   const stats = createDuoStats()
+  const remaining = remainingBudget(st)
+  if (remaining.tokens === 0 || remaining.usd === 0) {
+    return 'duo budget exhausted — clear it with /duo budget off before another debate'
+  }
   const modelA = isCli
     ? (st.modelA ?? 'opencode default')
     : resolveDuoModel('A', st, sessionModel)
@@ -438,12 +468,13 @@ async function executeDebate(
       protocol: st.protocol,
       ask: isCli ? makeCliAsk(context, st, stats) : makeAsk(context, st, stats),
       signal: context.abortController?.signal,
-      budgetTokens: st.budgetTokens ?? undefined,
-      budgetUsd: st.budgetUsd ?? undefined,
+      budgetTokens: remaining.tokens ?? undefined,
+      budgetUsd: remaining.usd ?? undefined,
       budgetWallMs: st.budgetWallMs ?? undefined,
       stats,
     })
 
+    addUsageToBudget(st, stats)
     saveDuoState(context, st)
     const out = formatDuoResult(result, {
       rounds: st.rounds,
@@ -460,6 +491,9 @@ async function executeDebate(
       : out
   } catch (error) {
     if (error instanceof DuoAbortError) {
+      // The interrupted debate still spent tokens; keep the budget honest
+      // before the partial session is persisted.
+      addUsageToBudget(st, stats)
       // Auto-save partial session if it has a name and at least one turn
       if (st.sessionName && (st.history.A.length > 0 || st.history.B.length > 0 || st.clTranscript.length > 0)) {
         const { saveSession } = await import('../../services/duo/persistence.js')

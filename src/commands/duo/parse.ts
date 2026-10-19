@@ -8,6 +8,7 @@ import {
   type DuoState,
   type DuoSide,
 } from '../../services/duo/types.js'
+import { isSafeSessionName } from '../../services/duo/persistence.js'
 
 export type DuoInput =
   | { verb: 'status' }
@@ -131,11 +132,25 @@ export function parseDuoInput(raw: string): DuoInput {
     case 'save': {
       const name = rest.trim()
       if (!name) return { verb: 'save', name: '', error: 'usage: /duo save <name>' }
+      if (!isSafeSessionName(name)) {
+        return {
+          verb: 'save',
+          name,
+          error: `invalid session name "${name}" (letters, digits, . _ -; max 64)`,
+        }
+      }
       return { verb: 'save', name }
     }
     case 'load': {
       const name = rest.trim()
       if (!name) return { verb: 'load', name: '', error: 'usage: /duo load <name>' }
+      if (!isSafeSessionName(name)) {
+        return {
+          verb: 'load',
+          name,
+          error: `invalid session name "${name}" (letters, digits, . _ -; max 64)`,
+        }
+      }
       return { verb: 'load', name }
     }
     case 'sessions': {
@@ -144,6 +159,13 @@ export function parseDuoInput(raw: string): DuoInput {
     case 'delete': {
       const name = rest.trim()
       if (!name) return { verb: 'delete', name: '', error: 'usage: /duo delete <name>' }
+      if (!isSafeSessionName(name)) {
+        return {
+          verb: 'delete',
+          name,
+          error: `invalid session name "${name}" (letters, digits, . _ -; max 64)`,
+        }
+      }
       return { verb: 'delete', name }
     }
     case 'rounds': {
@@ -211,6 +233,24 @@ export function resolveDuoModel(
 ): string {
   if (side === 'A') return st.modelA ?? sessionModel
   return st.modelB ?? st.modelA ?? sessionModel
+}
+
+/**
+ * Model actually passed to a debater. The CLI backends keep their own default
+ * when nothing is pinned (null); the builtin backend must use the live session
+ * model and B must follow A when only A is pinned — the same rule the header
+ * already used via resolveDuoModel.
+ */
+export function resolveDebaterModel(
+  side: DuoSide,
+  st: DuoState,
+  sessionModel: string,
+  backend: DuoBackend,
+): string | null {
+  if (backend === 'cli') {
+    return side === 'A' ? st.modelA : st.modelB
+  }
+  return resolveDuoModel(side, st, sessionModel)
 }
 
 /** Model ids are passed to CLIs as `-m <id>`; keep flag-shaped input out. */

@@ -13,20 +13,29 @@
 
 import type { DuoEntry, DuoResult, DuoSide, DuoVerdict, DuoStats } from './types.js'
 
-/** Matches a verdict line anywhere in a reply (global: matchAll needs /g). */
-const VERDICT_RE = /\bVERDICT:\s*(CONSENSUS|SUITE)\b/gi
+/**
+ * Matches the protocol line only when it starts the line (markdown emphasis
+ * and list/quote prefixes are tolerated). Matching anywhere let a reply that
+ * merely quoted the rule — or said "I cannot give VERDICT: CONSENSUS" — count
+ * as a verdict.
+ */
+const VERDICT_LINE_RE = /^[\s*_`~>-]*VERDICT:\s*(CONSENSUS|SUITE)\b/i
 
 /**
  * Extract the verdict of a reply, or null when none is present.
- * Only the LAST verdict mention counts — a reply may quote its peer's
- * verdict line while disagreeing with it.
+ *
+ * The prompt asks for the verdict on a final line; scan from the bottom so a
+ * reply that quotes its peer can still conclude with its own verdict.
  */
 export function parseVerdict(text: string): DuoVerdict | null {
-  const matches = [...text.matchAll(VERDICT_RE)]
-  const last = matches[matches.length - 1]
-  const value = last?.[1]
-  if (!value) return null
-  return value.toUpperCase() as DuoVerdict
+  const lines = text.split('\n')
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = lines[i]!.trim()
+    if (!line) continue
+    const match = line.match(VERDICT_LINE_RE)
+    if (match?.[1]) return match[1].toUpperCase() as DuoVerdict
+  }
+  return null
 }
 
 /** True when both replies carry a CONSENSUS verdict. */
@@ -82,7 +91,8 @@ export function duoSystemPrompt(
   const toolRules =
     tools === 'read'
       ? [
-          `- You may inspect the project with ${READ_ONLY_TOOLS.join(', ')} — nothing else.`,
+          `- You may inspect the project with ${READ_ONLY_TOOLS.join(', ')} — inside the current project only, nothing else.`,
+          '- Never read outside the project, never read secrets (.env, keys, .git).',
           '- Never edit files, run commands, or write anything: this is a debate,',
           '  not an implementation. Ground every claim in what you actually read.',
         ]

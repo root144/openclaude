@@ -180,18 +180,23 @@ export function formatDuoResult(
  */
 export function summarizeVerdicts(result: DuoResult): string {
   const marks: string[] = []
+  const perSide: Record<'A' | 'B', string[]> = { A: [], B: [] }
   for (const entry of result.entries) {
     if (entry.kind === 'question') continue
     const verdict = parseVerdict(entry.text)
     if (!verdict) continue
-    marks.push(verdict === 'CONSENSUS' ? 'CI' : 'CO')
+    const mark = verdict === 'CONSENSUS' ? 'CI' : 'CO'
+    marks.push(mark)
+    // Group by the side that actually spoke. Splitting the filtered marks by
+    // index parity assumes every side answered every turn; one missing verdict
+    // shifted every later mark onto the wrong debater and could report a
+    // CONSENSUS for a side that never emitted one.
+    perSide[entry.side].push(mark)
   }
   if (marks.length === 0) return ''
-  const a = marks.filter((_, i) => i % 2 === 0) // answers/debates alternate A then B
-  const b = marks.filter((_, i) => i % 2 === 1)
   const counts = [
-    `A ${mark(a)}`,
-    `B ${mark(b)}`,
+    `A ${mark(perSide.A)}`,
+    `B ${mark(perSide.B)}`,
   ]
   return `${counts.join(' · ')} · ${marks.join(' ')}`
 }

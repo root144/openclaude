@@ -58,6 +58,16 @@ describe('parseVerdict', () => {
     const text = 'You said VERDICT: CONSENSUS but I disagree.\nVERDICT: SUITE'
     expect(parseVerdict(text)).toBe('SUITE')
   })
+
+  test('a quoted rule or a negation is not a verdict', () => {
+    expect(parseVerdict('Rule: end with VERDICT: CONSENSUS or VERDICT: SUITE.')).toBeNull()
+    expect(parseVerdict('I cannot give VERDICT: CONSENSUS')).toBeNull()
+  })
+
+  test('tolerates markdown and block-quote prefixes', () => {
+    expect(parseVerdict('done\n**VERDICT: CONSENSUS**')).toBe('CONSENSUS')
+    expect(parseVerdict('done\n> VERDICT: SUITE')).toBe('SUITE')
+  })
 })
 
 describe('isDoubleConsensus', () => {

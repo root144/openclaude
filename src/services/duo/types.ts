@@ -43,11 +43,11 @@ export type DuoState = {
   protocol: boolean
   /** Model for side A (null = session model for builtin, CLI default for cli). */
   modelA: string | null
-  /** Fallback models for side A (tried in order on 429). */
+  /** Fallback models for side A (CLI backend; tried in order on 429). */
   modelAFallbacks: string[]
   /** Model for side B (null = same as A for builtin, CLI default for cli). */
   modelB: string | null
-  /** Fallback models for side B (tried in order on 429). */
+  /** Fallback models for side B (CLI backend; tried in order on 429). */
   modelBFallbacks: string[]
   /** Per-side conversation history (builtin backend only). */
   history: Record<DuoSide, Message[]>
@@ -183,6 +183,31 @@ export function createDuoStats(): DuoStats {
       A: { input: 0, output: 0, cost: 0 },
       B: { input: 0, output: 0, cost: 0 },
     },
+  }
+}
+
+/**
+ * Consume a debate's usage against the session budget. Call once per debate,
+ * after runDebate settles (including on abort, with partial stats).
+ */
+export function addUsageToBudget(state: DuoState, stats: DuoStats): void {
+  let tokens = 0
+  let usd = 0
+  for (const side of ['A', 'B'] as const satisfies readonly DuoSide[]) {
+    tokens += stats.usage[side].input + stats.usage[side].output
+    usd += stats.usage[side].cost
+  }
+  state.budgetUsed = {
+    tokens: state.budgetUsed.tokens + tokens,
+    usd: state.budgetUsed.usd + usd,
+  }
+}
+
+/** Remaining ceilings, or null when that budget is disabled. */
+export function remainingBudget(state: DuoState): { tokens: number | null; usd: number | null } {
+  return {
+    tokens: state.budgetTokens == null ? null : Math.max(0, state.budgetTokens - state.budgetUsed.tokens),
+    usd: state.budgetUsd == null ? null : Math.max(0, state.budgetUsd - state.budgetUsed.usd),
   }
 }
 

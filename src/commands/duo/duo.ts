@@ -27,6 +27,7 @@
 export {
   isValidModelId,
   parseDuoInput,
+  resolveDebaterModel,
   resolveDuoModel,
   type DuoInput,
 } from './parse.js'
