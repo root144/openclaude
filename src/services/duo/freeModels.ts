@@ -1,20 +1,10 @@
 /**
  * duo — free model catalogue (OpenCode + Cline + bridge/FCC).
  *
- * Snapshot produced by the probe in the duo project (duo/probe_free.py, run
- * from the machine that hosts the fork), cost 0 verified: 2026-10-08 (first
- * run), 2026-10-10 (rate-limit outage), 2026-10-16 (three OpenCode ids went
- * no-route and two Cline ids failed, longcat recovered, cat-jam-free and
- * big-pickle verified and added). 2026-10-18 (full re-probe): cat-jam-free and
- * muse-spark-1.3-contributor-free followed step-5 no-route — 11 ids OK (9 OpenCode + 2 Cline).
- * 2026-10-19 spot-check: space-bunny-free went no-route; big-pickle and mimo
- * still answer, so the fallback chain now starts with big-pickle.
- * 2026-10-16 (evening): the Google AI Studio
- * key was wired into FCC — Gemini flash models verified through the bridge
- * (see BRIDGE_FREE_MODELS; the pro/argon ids are paid-tier only on this key).
- * See RATE_LIMITED_MODELS and KNOWN_BAD_MODELS for the caveats. Re-run the
- * probe after PROBE_STALE_AFTER (or `python3 probe_free.py <id…>` for a
- * targeted re-check) and update this file.
+ * GENERATED FILE — do not edit by hand. Source: config/free-models.json;
+ * regenerate with `python3 ops/sync-models.py`. The live probe snapshot is
+ * duo/free_status.json; the catalogue is the list of models we are willing to
+ * try, with the current primary and fallback order.
  */
 
 /** Verified-cost-zero OpenCode models (provider/model-id). */
@@ -36,14 +26,7 @@ export const CLINE_FREE_MODELS = [
   'cline-free/mimo-v2.6-flash',
 ] as const
 
-/**
- * Bridge models verified at cost 0 via FCC (Google AI Studio free tier).
- *
- * Reachable on either side of a `builtin` debate (the default backend); the
- * `cli` backend spawns the opencode/cline CLIs, which do not see the bridge.
- * Verified live 2026-10-16: gemini-3.6-flash answers in seconds; 3.7/3.8 were
- * overloaded that day, and the pro/argon ids answered 429 on this free key.
- */
+/** Bridge models verified at cost 0 via FCC (Google AI Studio free tier). */
 export const BRIDGE_FREE_MODELS = [
   'anthropic/gemini/models/gemini-3.6-flash',
 ] as const
@@ -54,21 +37,18 @@ export const PROBE_DATE = '2026-10-18'
 /** Re-probe after this date: free tiers churn. */
 export const PROBE_STALE_AFTER = '2026-11-17'
 
-/**
- * Free models that were serving earlier and misbehaved at the last probe —
- * 429 on 2026-10-10, a 120 s hang instead of a reply on 2026-10-16.
- *
- * Deliberately kept out of KNOWN_BAD_MODELS: a saturated or slow free tier is
- * the service working as designed, not a broken entry, and these ids come
- * back. They stay in OC_FREE_MODELS because they are still the strongest
- * instruction followers available at cost 0 — they just must not be the
- * *only* option, which is what DUO_MODEL_A_FALLBACKS exists for.
- */
+/** Primary model used by launchers, shim and eval defaults. */
+export const PRIMARY_FREE_MODEL = 'opencode/big-pickle'
+
+/** Ordered fallbacks for the primary model. */
+export const PRIMARY_FALLBACKS = [
+  'opencode/mimo-v2.6-flash-free',
+  'opencode/nemotron-3.5-lightning-free',
+] as const
+
+/** Slow/rate-limited models kept usable via explicit rotation. */
 export const RATE_LIMITED_MODELS: ReadonlyArray<readonly [string, string]> = [
-  [
-    'opencode/nemotron-3-ultra-free',
-    '120 s without a reply at the 2026-10-16 probe — slow rather than broken; rotate via DUO_MODEL_A_FALLBACKS',
-  ],
+  ['opencode/nemotron-3-ultra-free', '120 s without a reply at the 2026-10-16 probe — slow rather than broken; rotate via DUO_MODEL_A_FALLBACKS'],
 ]
 
 /** Candidates that failed the probe, with their failure mode. */
@@ -77,30 +57,18 @@ export const KNOWN_BAD_MODELS: ReadonlyArray<readonly [string, string]> = [
   ['orcarouter/orcarouter/free', '402 — quota exhausted'],
   ['tokenrouter/z-ai/glm-5.3-free', '503 — unavailable'],
   ['opencode/ling-3.0-flash-fin-free', '400 — invalid model'],
-  // Verified live on earlier probes, gone no-route on 2026-10-16 ("Model
-  // unavailable"): the catalogue still advertises the ids, the endpoint just
-  // does not route them anymore.
   ['opencode/ling-3.1-flash-free', 'no-route — "Model unavailable", 2026-10-16'],
   ['opencode/fledge-alpha-free', 'no-route — "Model unavailable", 2026-10-16'],
   ['opencode/step-5-preview-free', 'no-route — "Model unavailable", 2026-10-16'],
   ['opencode/cat-jam-free', 'no-route — "Model unavailable", 2026-10-18'],
   ['opencode/space-bunny-free', 'no-route — "Model unavailable", 2026-10-19'],
   ['opencode/muse-spark-1.3-contributor-free', 'no-route — "Model unavailable", 2026-10-18'],
-  // Announced for retirement 2026-10-05, still served on 2026-10-08, failed
-  // the 2026-10-16 probe — volatile rather than gone.
   ['stealth/space-bunny-alpha', 'finish=error at the 2026-10-16 probe (retirement announced)'],
   ['cline-free/deepseek-v4.1-flash', '"model not found" at the 2026-10-16 probe'],
-  // Listed in the catalog, absent on the endpoint. A 404 rather than a 429:
-  // these ids were never valid, so neither retrying nor pacing can help.
   ['zenmux/anthropic/claude-sonnet-5-free', '404 — "Requested model is not valid"'],
   ['zenmux/moonshotai/kimi-k3-free', '404 — "Requested model is not valid"'],
   ['zenmux/stepfun/step-3.7-flash-free', '404 — "Requested model is not valid"'],
 ]
 
-/**
- * `stealth/space-bunny-alpha` was announced to retire on 2026-10-05, still
- * served at cost 0 on 2026-10-08, and failed the 2026-10-16 probe — it moved
- * to KNOWN_BAD_MODELS and may or may not return.
- */
 export const CLINE_RETIREMENT_WARNING =
   'stealth/space-bunny-alpha (retirement announced 2026-10-05) failed the 2026-10-16 probe — it may return, but do not rely on it'

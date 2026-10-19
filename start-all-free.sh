@@ -17,6 +17,13 @@ LEGACY_STATE_DIR="${TMPDIR:-/tmp}/opencode"
 mkdir -p "$STATE_DIR"
 TOKEN_FILE="$STATE_DIR/bridge-token"
 FORK_DIR="$(cd "$(dirname "$0")" && pwd)"
+# Single source of model defaults, generated from config/free-models.json.
+MODEL_ENV="${DUO_MODEL_ENV:-$FORK_DIR/../ops/model-defaults.env}"
+if [ -f "$MODEL_ENV" ]; then
+  set -a
+  . "$MODEL_ENV"
+  set +a
+fi
 
 log() { printf '\n=== %s %s ===\n' "$(date +%H:%M:%S)" "$1"; }
 
@@ -171,7 +178,7 @@ LIVE_REPLY=""
 for _ in 1 2 3; do
   LIVE_REPLY=$(curl -s -m 60 -X POST "http://127.0.0.1:${BRIDGE_PORT}/v1/messages" \
     -H 'Content-Type: application/json' -H 'x-api-key: bridge' -H 'anthropic-version: 2023-06-01' \
-    -d "{\"model\":\"opencode/big-pickle\",\"max_tokens\":40,\"messages\":[{\"role\":\"user\",\"content\":\"Say exactly: READY\"}]}" \
+    -d "{\"model\":\"${OC_BRIDGE_MODEL:-opencode/big-pickle}\",\"max_tokens\":40,\"messages\":[{\"role\":\"user\",\"content\":\"Say exactly: READY\"}]}" \
     | python3 -c "
 import sys, json
 try:
@@ -207,7 +214,7 @@ cat << EOF
 $(printf '%.0s─' {1..70})
 Stack is up — three free providers behind one Anthropic API:
 
-  opencode   session API   ~1.2 s    (opencode/big-pickle)
+  opencode   session API   ~1.2 s    (${OC_BRIDGE_MODEL:-opencode/big-pickle})
   nim        FCC proxy     ~1.3 s    (anthropic/nvidia_nim/...)
   cline      CLI spawn     6-15 s    (cline-free/...)
 

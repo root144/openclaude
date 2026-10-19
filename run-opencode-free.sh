@@ -23,7 +23,9 @@
 # ============================================================================
 
 FCC_PORT=18095
-FCC_MODEL="${FCC_MODEL:-opencode/big-pickle}"
+MODEL_ENV="${DUO_MODEL_ENV:-$(cd "$(dirname "$0")/.." && pwd)/ops/model-defaults.env}"
+if [ -f "$MODEL_ENV" ]; then . "$MODEL_ENV"; fi
+FCC_MODEL="${FCC_MODEL:-${OC_BRIDGE_MODEL:-opencode/big-pickle}}"
 
 if ! curl -s -m 20 "http://127.0.0.1:${FCC_PORT}/v1/models" > /dev/null 2>&1; then
   echo "ERROR: opencode bridge not reachable on 127.0.0.1:${FCC_PORT}."

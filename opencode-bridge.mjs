@@ -53,6 +53,12 @@ const FCC_TOKEN = (process.env.FCC_TOKEN ?? "").trim()
 const FCC_MODEL = process.env.FCC_MODEL ?? "nvidia_nim/nvidia/nemotron-3-super-120b-a12b"
 const CLINE_CANDIDATES = process.env.CLINE_CANDIDATES ?? join(HERE, "cline-candidates.txt")
 const CLINE_REFRESH_MS = Number(process.env.CLINE_REFRESH_MS ?? 10 * 60 * 1000)
+let MODEL_CATALOG = {}
+try {
+  MODEL_CATALOG = JSON.parse(readFileSync(new URL("../config/free-models.json", import.meta.url), "utf8"))
+} catch { /* catalogue is optional for a standalone bridge */ }
+const DEFAULT_PRIMARY = MODEL_CATALOG.primary ?? "opencode/big-pickle"
+const DEFAULT_FALLBACKS = [DEFAULT_PRIMARY, ...(MODEL_CATALOG.fallbacks ?? [])]
 
 if (!OC_TOKEN) {
   console.error("OC_BRIDGE_TOKEN is required (the server password printed by opencode serve).")
@@ -227,9 +233,9 @@ function orderByHealth(chain) {
 }
 
 function toOpencodeModel(requested) {
-  if (typeof requested !== "string") return "big-pickle"
+  if (typeof requested !== "string") return DEFAULT_PRIMARY
   const bare = requested.includes("/") ? requested.slice(requested.lastIndexOf("/") + 1) : requested
-  return bare || "big-pickle"
+  return bare || DEFAULT_PRIMARY
 }
 
 // ---- Session management ----
@@ -358,7 +364,7 @@ async function runTurn(model, prompt, maxTokens, directive, convo = null) {
 // Ordered fallback chain (opencode free tier first — fastest — then the
 // others). Override with OC_BRIDGE_FALLBACKS="modelA,modelB".
 const FALLBACKS = (process.env.OC_BRIDGE_FALLBACKS ??
-  "opencode/big-pickle,opencode/mimo-v2.6-flash-free,opencode/nemotron-3.5-lightning-free,opencode/space-bunny-free,opencode/nemotron-3-ultra-free,opencode/longcat-2.5-preview-free")
+  DEFAULT_FALLBACKS.join(","))
   .split(",").map(s => s.trim()).filter(Boolean)
 
 async function runTurnWithFallback(model, prompt, maxTokens, directive, convo = null, fullPrompt = null) {
@@ -1308,7 +1314,7 @@ async function listModels() {
  * memory first, and that load outlasts the poll deadline. Every later turn is
  * fast. Warming once at startup means the first real request is fast too. */
 async function warmUp() {
-  const model = toOpencodeModel(process.env.OC_BRIDGE_MODEL ?? "big-pickle")
+  const model = toOpencodeModel(process.env.OC_BRIDGE_MODEL ?? DEFAULT_PRIMARY)
   console.log("[warmup] loading " + model + "…")
   const started = Date.now()
   try {
