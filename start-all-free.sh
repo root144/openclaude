@@ -130,7 +130,9 @@ else
     OC_BRIDGE_TOKEN="$OC_TOKEN" FCC_TOKEN="${FCC_TOKEN:-bridge}" \
     OC_BRIDGE_DEADLINE="${OC_BRIDGE_DEADLINE:-600000}" \
     CLINE_REFRESH_MS="${CLINE_REFRESH_MS:-1800000}" \
-    setsid nohup node "$FORK_DIR/opencode-bridge.mjs" >> "$STATE_DIR/bridge.log" 2>&1 < /dev/null &
+    NODE_BIN="${NODE_BIN:-$HOME/.local/bin/node}"
+    [ -x "$NODE_BIN" ] || NODE_BIN="$(command -v node)"
+    setsid nohup "$NODE_BIN" "$FORK_DIR/opencode-bridge.mjs" >> "$STATE_DIR/bridge.log" 2>&1 < /dev/null &
   for _ in $(seq 1 20); do
     ss -tln 2>/dev/null | grep -q ":${BRIDGE_PORT} " && break
     sleep 1

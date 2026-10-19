@@ -60,4 +60,7 @@ unset CLAUDE_CODE_USE_BEDROCK
 unset CLAUDE_CODE_USE_VERTEX
 
 cd "$(dirname "$0")"
-exec node dist/cli.mjs --model "$ANTHROPIC_MODEL" "$@"
+# Desktop sessions may have /usr/bin/node (18) before the user's Node 22.
+NODE_BIN="${NODE_BIN:-$HOME/.local/bin/node}"
+if [ ! -x "$NODE_BIN" ]; then NODE_BIN="$(command -v node)"; fi
+exec "$NODE_BIN" dist/cli.mjs --model "$ANTHROPIC_MODEL" "$@"
