@@ -227,9 +227,9 @@ function orderByHealth(chain) {
 }
 
 function toOpencodeModel(requested) {
-  if (typeof requested !== "string") return "space-bunny-free"
+  if (typeof requested !== "string") return "big-pickle"
   const bare = requested.includes("/") ? requested.slice(requested.lastIndexOf("/") + 1) : requested
-  return bare || "space-bunny-free"
+  return bare || "big-pickle"
 }
 
 // ---- Session management ----
@@ -358,7 +358,7 @@ async function runTurn(model, prompt, maxTokens, directive, convo = null) {
 // Ordered fallback chain (opencode free tier first — fastest — then the
 // others). Override with OC_BRIDGE_FALLBACKS="modelA,modelB".
 const FALLBACKS = (process.env.OC_BRIDGE_FALLBACKS ??
-  "opencode/space-bunny-free,opencode/big-pickle,opencode/nemotron-3-ultra-free,opencode/mimo-v2.6-flash-free,opencode/longcat-2.5-preview-free")
+  "opencode/big-pickle,opencode/mimo-v2.6-flash-free,opencode/nemotron-3.5-lightning-free,opencode/space-bunny-free,opencode/nemotron-3-ultra-free,opencode/longcat-2.5-preview-free")
   .split(",").map(s => s.trim()).filter(Boolean)
 
 async function runTurnWithFallback(model, prompt, maxTokens, directive, convo = null, fullPrompt = null) {
@@ -1308,7 +1308,7 @@ async function listModels() {
  * memory first, and that load outlasts the poll deadline. Every later turn is
  * fast. Warming once at startup means the first real request is fast too. */
 async function warmUp() {
-  const model = toOpencodeModel(process.env.OC_BRIDGE_MODEL ?? "space-bunny-free")
+  const model = toOpencodeModel(process.env.OC_BRIDGE_MODEL ?? "big-pickle")
   console.log("[warmup] loading " + model + "…")
   const started = Date.now()
   try {

@@ -6,7 +6,9 @@
  * run), 2026-10-10 (rate-limit outage), 2026-10-16 (three OpenCode ids went
  * no-route and two Cline ids failed, longcat recovered, cat-jam-free and
  * big-pickle verified and added). 2026-10-18 (full re-probe): cat-jam-free and
- * muse-spark-1.3-contributor-free followed step-5 no-route — 12 ids OK.
+ * muse-spark-1.3-contributor-free followed step-5 no-route — 11 ids OK (9 OpenCode + 2 Cline).
+ * 2026-10-19 spot-check: space-bunny-free went no-route; big-pickle and mimo
+ * still answer, so the fallback chain now starts with big-pickle.
  * 2026-10-16 (evening): the Google AI Studio
  * key was wired into FCC — Gemini flash models verified through the bridge
  * (see BRIDGE_FREE_MODELS; the pro/argon ids are paid-tier only on this key).
@@ -18,7 +20,6 @@
 /** Verified-cost-zero OpenCode models (provider/model-id). */
 export const OC_FREE_MODELS = [
   'opencode/mimo-v2.6-flash-free',
-  'opencode/space-bunny-free',
   'opencode/nemotron-3.5-lightning-free',
   'opencode/nemotron-3-ultra-free',
   'opencode/longcat-2.5-preview-free',
@@ -83,6 +84,7 @@ export const KNOWN_BAD_MODELS: ReadonlyArray<readonly [string, string]> = [
   ['opencode/fledge-alpha-free', 'no-route — "Model unavailable", 2026-10-16'],
   ['opencode/step-5-preview-free', 'no-route — "Model unavailable", 2026-10-16'],
   ['opencode/cat-jam-free', 'no-route — "Model unavailable", 2026-10-18'],
+  ['opencode/space-bunny-free', 'no-route — "Model unavailable", 2026-10-19'],
   ['opencode/muse-spark-1.3-contributor-free', 'no-route — "Model unavailable", 2026-10-18'],
   // Announced for retirement 2026-10-05, still served on 2026-10-08, failed
   // the 2026-10-16 probe — volatile rather than gone.

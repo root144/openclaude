@@ -171,7 +171,7 @@ LIVE_REPLY=""
 for _ in 1 2 3; do
   LIVE_REPLY=$(curl -s -m 60 -X POST "http://127.0.0.1:${BRIDGE_PORT}/v1/messages" \
     -H 'Content-Type: application/json' -H 'x-api-key: bridge' -H 'anthropic-version: 2023-06-01' \
-    -d "{\"model\":\"opencode/space-bunny-free\",\"max_tokens\":40,\"messages\":[{\"role\":\"user\",\"content\":\"Say exactly: READY\"}]}" \
+    -d "{\"model\":\"opencode/big-pickle\",\"max_tokens\":40,\"messages\":[{\"role\":\"user\",\"content\":\"Say exactly: READY\"}]}" \
     | python3 -c "
 import sys, json
 try:
@@ -207,7 +207,7 @@ cat << EOF
 $(printf '%.0s─' {1..70})
 Stack is up — three free providers behind one Anthropic API:
 
-  opencode   session API   ~1.2 s    (opencode/space-bunny-free)
+  opencode   session API   ~1.2 s    (opencode/big-pickle)
   nim        FCC proxy     ~1.3 s    (anthropic/nvidia_nim/...)
   cline      CLI spawn     6-15 s    (cline-free/...)
 

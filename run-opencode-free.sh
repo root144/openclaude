@@ -5,7 +5,7 @@
 # Routes the fork through one local Anthropic-compatible bridge backed by three
 # free-tier providers:
 #
-#   opencode   session API      opencode/space-bunny-free     ~1.2 s
+#   opencode   session API      opencode/big-pickle           ~1.2 s
 #   nim        FCC proxy        anthropic/nvidia_nim/...      ~1.3 s
 #   cline      CLI spawn        cline-free/...               6-15 s
 #
@@ -23,7 +23,7 @@
 # ============================================================================
 
 FCC_PORT=18095
-FCC_MODEL="${FCC_MODEL:-opencode/space-bunny-free}"
+FCC_MODEL="${FCC_MODEL:-opencode/big-pickle}"
 
 if ! curl -s -m 20 "http://127.0.0.1:${FCC_PORT}/v1/models" > /dev/null 2>&1; then
   echo "ERROR: opencode bridge not reachable on 127.0.0.1:${FCC_PORT}."
