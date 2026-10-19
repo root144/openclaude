@@ -53,6 +53,9 @@ describe('usage and timing', () => {
     expect(formatDuoStats(stats)).toContain('A 22 in / 5 out')
     expect(formatDuoStats(stats)).toContain('B 9 in / 1 out')
     expect(formatDuoStats(stats)).toContain('5 s')
+    // Parallel A/B turns overlap: the report must use real wall time.
+    expect(formatDuoStats(stats, 9000)).toContain('9 s')
+    expect(formatDuoStats(stats, 9000)).not.toContain('5 s')
   })
 
   test('a side that reports nothing says so instead of claiming zero', () => {

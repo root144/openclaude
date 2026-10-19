@@ -124,6 +124,8 @@ export function formatDuoResult(
     usedB?: string | null
     skill?: string | null
     stats?: DuoStats
+    /** Real elapsed debate time; parallel turn durations must not be summed. */
+    wallMs?: number
   },
 ): string {
   const skillLabel = opts.skill ? ` · skill=${opts.skill}` : ''
@@ -168,7 +170,7 @@ export function formatDuoResult(
                 ? `→ budget exhausted: wall-clock timeout reached`
                 : '(opening answers only — rounds 0)',
   )
-  if (opts.stats) lines.push(formatDuoStats(opts.stats))
+  if (opts.stats) lines.push(formatDuoStats(opts.stats, opts.wallMs))
   return lines.join('\n')
 }
 

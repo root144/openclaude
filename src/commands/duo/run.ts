@@ -461,6 +461,7 @@ async function executeDebate(
     }
   }
 
+  const debateStartedAt = Date.now()
   try {
     const result = await runDebate({
       question: effectiveQuestion,
@@ -474,6 +475,7 @@ async function executeDebate(
       stats,
     })
 
+    const wallMs = Date.now() - debateStartedAt
     addUsageToBudget(st, stats)
     saveDuoState(context, st)
     const out = formatDuoResult(result, {
@@ -485,6 +487,7 @@ async function executeDebate(
       usedB: effectiveModel(stats, 'B', st.modelB),
       skill,
       stats,
+      wallMs,
     })
     return routeError
       ? `${out}\n⚠ skill routing failed — no skill applied: ${routeError}`

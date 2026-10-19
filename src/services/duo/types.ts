@@ -229,9 +229,13 @@ export function recordTurn(
   }
 }
 
-/** `A 1234 in / 45 out · B 12 in / 3 out · 42 s` — or nothing when unknown. */
-export function formatDuoStats(stats: DuoStats): string {
-  const ms = stats.turns.reduce((sum, turn) => sum + turn.ms, 0)
+/**
+ * `A 1234 in / 45 out · B 12 in / 3 out · 42 s` — or nothing when unknown.
+ * `wallMs` should be the elapsed debate time: A and B run in parallel, so
+ * summing their per-turn durations inflated the reported wall time.
+ */
+export function formatDuoStats(stats: DuoStats, wallMs?: number): string {
+  const ms = wallMs ?? stats.turns.reduce((sum, turn) => sum + turn.ms, 0)
   const known = (side: DuoSide) => stats.usage[side].input || stats.usage[side].output
   const parts: string[] = []
   for (const side of ['A', 'B'] as const) {
