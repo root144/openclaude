@@ -25,7 +25,7 @@
 FCC_PORT=18095
 FCC_MODEL="${FCC_MODEL:-opencode/space-bunny-free}"
 
-if ! curl -s -m 3 "http://127.0.0.1:${FCC_PORT}/v1/models" > /dev/null 2>&1; then
+if ! curl -s -m 20 "http://127.0.0.1:${FCC_PORT}/v1/models" > /dev/null 2>&1; then
   echo "ERROR: opencode bridge not reachable on 127.0.0.1:${FCC_PORT}."
   echo "Run:  ~/duo-stack/openclaude/start-all-free.sh"
   exit 1

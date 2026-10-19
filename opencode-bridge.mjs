@@ -18,6 +18,34 @@ for (const level of ["log", "error", "warn"]) {
 }
 
 const PORT = Number(process.env.OC_BRIDGE_PORT ?? 18095)
+// The bridge is unauthenticated by design (loopback-only), but a loopback
+// listener is reachable by a browser via DNS rebinding: the page's hostname
+// resolves to 127.0.0.1, the browser sends its own Host header, and the server
+// would answer as if the request were local. Pin the Host/Origin allowlists so
+// only real local clients (TUI, oma, claude-mem, curl) can drive the bridge.
+const ALLOWED_HOSTS = new Set([
+  `127.0.0.1:${PORT}`,
+  `localhost:${PORT}`,
+  `[::1]:${PORT}`,
+])
+const ALLOWED_ORIGINS = new Set([
+  `http://127.0.0.1:${PORT}`,
+  `http://localhost:${PORT}`,
+  `http://[::1]:${PORT}`,
+])
+function requestAllowed(req) {
+  const host = String(req.headers.host ?? "").toLowerCase()
+  if (host) {
+    if (!ALLOWED_HOSTS.has(host)) return false
+  } else if (!(req.httpVersionMajor === 1 && req.httpVersionMinor === 0)) {
+    // HTTP/1.1 requires Host; a missing one is not a browser. HTTP/1.0
+    // clients are allowed to omit it.
+    return false
+  }
+  const origin = req.headers.origin
+  if (origin && !ALLOWED_ORIGINS.has(String(origin).toLowerCase())) return false
+  return true
+}
 const OC_URL = (process.env.OC_BRIDGE_URL ?? "http://127.0.0.1:18085").replace(/\/+$/, "")
 const OC_TOKEN = process.env.OC_BRIDGE_TOKEN
 const FCC_URL = (process.env.FCC_URL ?? "http://127.0.0.1:8082").replace(/\/+$/, "")
@@ -1304,6 +1332,14 @@ const server = http.createServer(async (req, res) => {
   const done = (status, payload) => {
     console.log(req.method + " " + url.pathname + " " + status + " " + (Date.now() - started) + "ms")
     return send(res, status, payload)
+  }
+  if (!requestAllowed(req)) {
+    console.log("[security] rejected host=" + String(req.headers.host ?? "") +
+      " origin=" + String(req.headers.origin ?? ""))
+    // The POST body has not been consumed; close so it cannot be parsed as a
+    // second request on a keep-alive connection.
+    res.setHeader("Connection", "close")
+    return done(403, anthropicError("forbidden host or origin"))
   }
   if (req.method === "POST" && url.pathname === "/v1/messages") {
     let body

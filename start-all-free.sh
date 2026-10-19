@@ -89,6 +89,17 @@ else
   fi
 fi
 
+# FCC is an inference + admin endpoint. It must never be reachable from the
+# LAN; the HOST setting lives in FCC's own store (~/.fcc/.env), so verify it
+# here rather than silently trusting a previous install/config reset.
+if ss -ltn 2>/dev/null | grep -q ':8082 '; then
+  fcc_line=$(ss -ltn 2>/dev/null | grep ':8082 ' | head -1)
+  case "$fcc_line" in
+    *"127.0.0.1:8082"*|*"[::1]:8082"*) ;;
+    *) log "WARNING: FCC is listening outside loopback (expected 127.0.0.1:8082) — set HOST=127.0.0.1 in ~/.fcc/.env and restart FCC" ;;
+  esac
+fi
+
 # --- 2. bridge --------------------------------------------------------------
 if ss -tln 2>/dev/null | grep -q ":${BRIDGE_PORT} "; then
   log "bridge already on ${BRIDGE_PORT}"
