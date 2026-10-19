@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import {
   formatDuoResult,
+  formatDuoStatus,
   formatFreeModels,
   isValidModelId,
   parseDuoInput,
@@ -227,6 +228,15 @@ describe('resolveDuoModel', () => {
     const onlyB = { ...st, modelB: 'model-y' }
     expect(resolveDuoModel('A', onlyB, 'session-model')).toBe('session-model')
     expect(resolveDuoModel('B', onlyB, 'session-model')).toBe('model-y')
+  })
+})
+
+describe('formatDuoStatus', () => {
+  test('warns when builtin fallbacks cannot be used', () => {
+    const st = createDuoState()
+    st.backend = 'builtin'
+    st.modelAFallbacks = ['opencode/big-pickle']
+    expect(formatDuoStatus(st, 'session-model')).toContain('fallbacks  ignorés en builtin')
   })
 })
 

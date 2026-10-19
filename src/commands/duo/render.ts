@@ -34,6 +34,7 @@ export function formatDuoStatus(st: DuoState, sessionModel: string): string {
   const isCli = st.backend === 'cli'
   const modelA = st.modelA ?? (isCli ? '(opencode CLI default)' : `(session default: ${sessionModel})`)
   const modelB = st.modelB ?? (isCli ? '(cline CLI default)' : st.modelA ?? '(same as A)')
+  const ignoredFallbacks = !isCli && (st.modelAFallbacks.length > 0 || st.modelBFallbacks.length > 0)
   const continuity = isCli
     ? `  continuity opencode: ${st.ocSession ? `session ${st.ocSession.slice(0, 12)}…` : 'new'} · cline transcript: ${st.clTranscript.length} turns`
     : `  history   A: ${st.history.A.length} msgs · B: ${st.history.B.length} msgs`
@@ -52,6 +53,9 @@ export function formatDuoStatus(st: DuoState, sessionModel: string): string {
     `  approve    ${st.approve ? 'on' : 'off'}`,
     `  model A    ${modelA}`,
     `  model B    ${modelB}`,
+    ...(ignoredFallbacks
+      ? ['  fallbacks  ignorés en builtin (CLI only)']
+      : []),
     ...(budgetLines.length ? ['', ...budgetLines] : []),
     continuity,
     ``,

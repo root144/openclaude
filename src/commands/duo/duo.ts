@@ -33,6 +33,7 @@ export {
 } from './parse.js'
 export {
   formatDuoResult,
+  formatDuoStatus,
   formatFreeModels,
   summarizeVerdicts,
 } from './render.js'
